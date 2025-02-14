@@ -149,14 +149,18 @@ ngx_rtmp_init_session(ngx_connection_t *c, ngx_rtmp_addr_conf_t *addr_conf)
     ngx_rtmp_core_srv_conf_t       *cscf;
     ngx_rtmp_error_log_ctx_t       *ctx;
 
-    s = ngx_pcalloc(c->pool, sizeof(ngx_rtmp_session_t) +
+    uint32_t struct_size = sizeof(ngx_rtmp_session_t) +
             sizeof(ngx_chain_t *) * ((ngx_rtmp_core_srv_conf_t *)
                 addr_conf->ctx-> srv_conf[ngx_rtmp_core_module
-                    .ctx_index])->out_queue);
+                    .ctx_index])->out_queue;
+    s = ngx_pcalloc(c->pool, struct_size);
     if (s == NULL) {
         ngx_rtmp_close_connection(c);
         return NULL;
     }
+    // s->session_start_time = 0;
+    // s->session_pts_time = 0;
+    // s->last_keyframe_time = 0;
 
     s->main_conf = addr_conf->ctx->main_conf;
     s->srv_conf = addr_conf->ctx->srv_conf;
@@ -214,6 +218,10 @@ ngx_rtmp_init_session(ngx_connection_t *c, ngx_rtmp_addr_conf_t *addr_conf)
         return NULL;
     }
 
+    uint64_t utcms = (uint64_t)((ngx_cached_time->sec) * 1000) + (uint64_t)ngx_cached_time->msec;
+    s->session_pts_time = 0;
+    s->session_start_time = utcms;
+    s->last_keyframe_time = utcms;
     return s;
 }
 
@@ -257,17 +265,6 @@ ngx_rtmp_close_connection(ngx_connection_t *c)
     ngx_pool_t                         *pool;
 
     ngx_log_debug0(NGX_LOG_DEBUG_RTMP, c->log, 0, "close connection");
-
-#if (NGX_SSL)
-
-    if (c->ssl) {
-        if (ngx_ssl_shutdown(c) == NGX_AGAIN) {
-            c->ssl->handler = ngx_rtmp_close_connection;
-            return;
-        }
-    }
-
-#endif
 
 #if (NGX_STAT_STUB)
     (void) ngx_atomic_fetch_add(ngx_stat_active, -1);

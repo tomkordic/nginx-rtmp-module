@@ -2028,6 +2028,9 @@ ngx_rtmp_hls_video(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
                              (b && b->last > b->pos));
 
     ngx_rtmp_hls_update_fragment(s, frame.dts, boundary, 1);
+    if (!frame.key && ctx->file.frames_written == 0) {
+        ngx_log_error(NGX_LOG_INFO, s->connection->log, 0, "%s did not start with a keyframe", ctx->stream.data);
+    }
 
     if (!ctx->opened) {
         return NGX_OK;

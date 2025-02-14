@@ -206,6 +206,10 @@ typedef struct {
 #else
     ngx_event_t            *posted_dry_events;
 #endif
+    /* Stats */
+    uint64_t session_start_time;
+    uint64_t last_keyframe_time;
+    uint64_t   session_pts_time;
 
     /* client buffer time in msec */
     uint32_t                buflen;

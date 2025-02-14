@@ -318,7 +318,8 @@ ngx_rtmp_mpegts_write_frame(ngx_rtmp_mpegts_file_t *file,
             return rc;
         }
     }
-
+    file->frames_written++;
+    
     return NGX_OK;
 }
 
@@ -364,6 +365,7 @@ ngx_rtmp_mpegts_open_file(ngx_rtmp_mpegts_file_t *file, u_char *path,
     }
 
     file->size = 0;
+    file->frames_written = 0;
 
     if (ngx_rtmp_mpegts_write_header(file) != NGX_OK) {
         ngx_log_error(NGX_LOG_ERR, log, ngx_errno,

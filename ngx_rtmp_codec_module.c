@@ -889,6 +889,30 @@ ngx_rtmp_codec_meta_data(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
     return NGX_OK;
 }
 
+static ngx_int_t ngx_rtmp_codec_avc_stats_handler(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
+                                            ngx_chain_t *in) {
+    ngx_buf_t *b = in->buf;
+    if (b->last - b->pos < 1) {
+        return NGX_OK;
+    }
+    // TODO: maybe deduct first pts from current if pts do not start from 0
+    s->session_pts_time = h->timestamp; // PTS accumulation in ms
+    // Check if the packet is a Keyframe (0x17 = Keyframe + AVC)
+    if (b->pos[0] == 0x17) {
+        uint64_t utcms = (uint64_t)((ngx_cached_time->sec) * 1000) + (uint64_t)ngx_cached_time->msec;
+        uint64_t elapsed_since_start = utcms - s->session_start_time;
+        // Compute interval since last keyframe
+        uint64_t interval =  utcms - s->last_keyframe_time;
+        s->last_keyframe_time = utcms;
+        // Log keyframe data
+        char msg[1000];
+        sprintf(msg, "Keyframe received: Ess= %llu ms, I= %llu ms, PTS= %llu ms",
+                elapsed_since_start, interval, s->session_pts_time);
+        ngx_log_error(NGX_LOG_INFO, s->connection->log, 0, msg);
+    }
+    return NGX_OK;
+}
+
 
 static void *
 ngx_rtmp_codec_create_app_conf(ngx_conf_t *cf)
@@ -933,6 +957,9 @@ ngx_rtmp_codec_postconfiguration(ngx_conf_t *cf)
     h = ngx_array_push(&cmcf->events[NGX_RTMP_MSG_VIDEO]);
     *h = ngx_rtmp_codec_av;
 
+    h = ngx_array_push(&cmcf->events[NGX_RTMP_MSG_VIDEO]);
+    *h = ngx_rtmp_codec_avc_stats_handler;
+
     h = ngx_array_push(&cmcf->events[NGX_RTMP_DISCONNECT]);
     *h = ngx_rtmp_codec_disconnect;
 
@@ -950,7 +977,6 @@ ngx_rtmp_codec_postconfiguration(ngx_conf_t *cf)
     }
     ngx_str_set(&ch->name, "onMetaData");
     ch->handler = ngx_rtmp_codec_meta_data;
-
 
     return NGX_OK;
 }
