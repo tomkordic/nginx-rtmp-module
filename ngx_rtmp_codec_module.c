@@ -903,11 +903,12 @@ static ngx_int_t ngx_rtmp_codec_avc_stats_handler(ngx_rtmp_session_t *s, ngx_rtm
         uint64_t utcms = (uint64_t)((ngx_cached_time->sec) * 1000) + (uint64_t)ngx_cached_time->msec;
         uint64_t elapsed_since_start = utcms - s->session_start_time;
         uint64_t interval =  utcms - s->last_keyframe_time;
+        int32_t  diff = elapsed_since_start - s->session_pts_time;
         s->last_keyframe_time = utcms;
         double framerate = (double)s->frames_per_gop / (double)interval * 1000.0;
         char msg[1000];
-        sprintf(msg, "Keyframe received: Ess= %llu ms, PTS= %llu ms, fps= %f, I= %llu ms, ",
-                elapsed_since_start, s->session_pts_time, framerate, interval);
+        sprintf(msg, "Keyframe received: Ess= %llu ms, PTS= %llu ms, diff= %d, fps= %f, I= %llu ms, ",
+                elapsed_since_start, s->session_pts_time, diff, framerate, interval);
         ngx_log_error(NGX_LOG_INFO, s->connection->log, 0, msg);
         s->frames_per_gop = 0;
     }
