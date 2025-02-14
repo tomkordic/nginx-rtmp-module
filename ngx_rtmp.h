@@ -210,6 +210,7 @@ typedef struct {
     uint64_t session_start_time;
     uint64_t last_keyframe_time;
     uint64_t   session_pts_time;
+    uint8_t  frames_per_gop;
 
     /* client buffer time in msec */
     uint32_t                buflen;

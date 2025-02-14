@@ -222,6 +222,7 @@ ngx_rtmp_init_session(ngx_connection_t *c, ngx_rtmp_addr_conf_t *addr_conf)
     s->session_pts_time = 0;
     s->session_start_time = utcms;
     s->last_keyframe_time = utcms;
+    s->frames_per_gop = 0;
     return s;
 }
 
